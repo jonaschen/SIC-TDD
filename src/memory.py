@@ -11,8 +11,9 @@ class Memory:
         """
         Initializes the memory. All bytes are set to 0.
         """
-        # To be implemented
-        pass
+        # A bytearray is a mutable sequence of integers in the range 0 <= x < 256.
+        # It's an efficient way to represent a block of memory.
+        self._memory = bytearray(self.SIZE)
 
     def read_byte(self, address):
         """
@@ -27,8 +28,11 @@ class Memory:
         Raises:
             IndexError: If the address is out of bounds.
         """
-        # To be implemented
-        raise NotImplementedError("read_byte not implemented yet")
+        if not (0 <= address < self.SIZE):
+            raise IndexError(f"Address {address} is out of bounds for memory size {self.SIZE}.")
+        
+        return self._memory[address]
+
 
     def write_byte(self, address, value):
         """
