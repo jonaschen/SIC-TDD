@@ -37,17 +37,21 @@ class Memory:
     def write_byte(self, address, value):
         """
         Writes a single byte to the specified address.
+        Values larger than 8 bits will be truncated.
         
         Args:
             address (int): The address where the byte will be written.
-            value (int): The byte value to write (0-255).
+            value (int): The byte value to write.
             
         Raises:
             IndexError: If the address is out of bounds.
-            ValueError: If the value is not a valid byte.
         """
-        # To be implemented
-        raise NotImplementedError("write_byte not implemented yet")
+        if not (0 <= address < self.SIZE):
+            raise IndexError(f"Address {address} is out of bounds for memory size {self.SIZE}.")
+        
+        # Mask the value to ensure it's a single byte (8 bits).
+        # This handles Test 10.
+        self._memory[address] = value & 0xFF
 
     def read_word(self, address):
         """
