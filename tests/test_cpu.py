@@ -96,7 +96,6 @@ class TestCPU(unittest.TestCase):
         """
         # --- Setup ---
         # Program: ADD 0x3050
-        # Opcode for ADD is 0x18
         start_pc = 0x3000
         data_address = 0x3050
         
@@ -104,19 +103,42 @@ class TestCPU(unittest.TestCase):
         value_to_add = 0x000025
         expected_result = 0x000035
 
-        # Set initial register and memory values
         self.registers.A = initial_a_value
         self.registers.PC = start_pc
         self.memory.write_word(data_address, value_to_add)
-        
-        # Place the instruction in memory: ADD 0x3050 -> 0x183050
-        self.memory.write_word(start_pc, 0x183050)
+        self.memory.write_word(start_pc, 0x183050) # ADD 0x3050
 
         # --- Execution ---
         self.cpu.step()
 
         # --- Verification ---
         self.assertEqual(self.registers.A, expected_result, "Register A should hold the sum.")
+        self.assertEqual(self.registers.PC, start_pc + 3, "PC should be incremented by 3.")
+
+    def test_step_executes_sub_instruction(self):
+        """
+        Tests the full fetch-decode-execute cycle for a single SUB instruction.
+        """
+        # --- Setup ---
+        # Program: SUB 0x4050
+        # Opcode for SUB is 0x1C
+        start_pc = 0x4000
+        data_address = 0x4050
+        
+        initial_a_value = 0x000035
+        value_to_sub = 0x000010
+        expected_result = 0x000025
+
+        self.registers.A = initial_a_value
+        self.registers.PC = start_pc
+        self.memory.write_word(data_address, value_to_sub)
+        self.memory.write_word(start_pc, 0x1C4050) # SUB 0x4050
+
+        # --- Execution ---
+        self.cpu.step()
+
+        # --- Verification ---
+        self.assertEqual(self.registers.A, expected_result, "Register A should hold the difference.")
         self.assertEqual(self.registers.PC, start_pc + 3, "PC should be incremented by 3.")
 
 
