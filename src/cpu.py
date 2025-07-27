@@ -23,6 +23,7 @@ class CPU:
             0x00: self._lda,
             0x0C: self._sta,
             0x18: self._add,
+            0x1C: self._sub,
         } 
 
     def fetch(self) -> Instruction:
@@ -88,4 +89,13 @@ class CPU:
         effective_address = self._get_effective_address(instr)
         operand = self.memory.read_word(effective_address)
         self.registers.A += operand
+
+    def _sub(self, instr: Instruction):
+        """
+        Executes the SUB (Subtract from Accumulator) instruction.
+        Opcode: 0x1C
+        """
+        effective_address = self._get_effective_address(instr)
+        operand = self.memory.read_word(effective_address)
+        self.registers.A -= operand
 
