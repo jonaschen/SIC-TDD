@@ -75,26 +75,48 @@ class TestCPU(unittest.TestCase):
         """
         # --- Setup ---
         # Program to execute: STA 0x2080
-        # Opcode for STA is 0x0C
         start_pc = 0x2000
         store_address = 0x2080
         value_to_store = 0xCCBBFF
 
-        # Load a value into the A register
         self.registers.A = value_to_store
         self.registers.PC = start_pc
-
-        # Place the instruction in memory: STA 0x2080 -> 0x0C2080
-        self.memory.write_word(start_pc, 0x0C2080)
+        self.memory.write_word(start_pc, 0x0C2080) # STA 0x2080
 
         # --- Execution ---
         self.cpu.step()
 
         # --- Verification ---
-        # 1. The value from register A should be in memory at the target address.
         self.assertEqual(self.memory.read_word(store_address), value_to_store, "Memory should contain the value from register A.")
+        self.assertEqual(self.registers.PC, start_pc + 3, "PC should be incremented by 3.")
 
-        # 2. The Program Counter should have advanced by 3.
+    def test_step_executes_add_instruction(self):
+        """
+        Tests the full fetch-decode-execute cycle for a single ADD instruction.
+        """
+        # --- Setup ---
+        # Program: ADD 0x3050
+        # Opcode for ADD is 0x18
+        start_pc = 0x3000
+        data_address = 0x3050
+        
+        initial_a_value = 0x000010
+        value_to_add = 0x000025
+        expected_result = 0x000035
+
+        # Set initial register and memory values
+        self.registers.A = initial_a_value
+        self.registers.PC = start_pc
+        self.memory.write_word(data_address, value_to_add)
+        
+        # Place the instruction in memory: ADD 0x3050 -> 0x183050
+        self.memory.write_word(start_pc, 0x183050)
+
+        # --- Execution ---
+        self.cpu.step()
+
+        # --- Verification ---
+        self.assertEqual(self.registers.A, expected_result, "Register A should hold the sum.")
         self.assertEqual(self.registers.PC, start_pc + 3, "PC should be incremented by 3.")
 
 
