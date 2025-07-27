@@ -24,6 +24,7 @@ class CPU:
             0x0C: self._sta,
             0x18: self._add,
             0x1C: self._sub,
+            0x28: self._comp,
         } 
 
     def fetch(self) -> Instruction:
@@ -98,4 +99,20 @@ class CPU:
         effective_address = self._get_effective_address(instr)
         operand = self.memory.read_word(effective_address)
         self.registers.A -= operand
+
+    def _comp(self, instr: Instruction):
+        """
+        Executes the COMP (Compare) instruction.
+        Opcode: 0x28
+        Compares A with a word in memory and sets the SW register.
+        """
+        effective_address = self._get_effective_address(instr)
+        operand = self.memory.read_word(effective_address)
+        
+        if self.registers.A < operand:
+            self.registers.SW = ord('<')
+        elif self.registers.A == operand:
+            self.registers.SW = ord('=')
+        else: # self.registers.A > operand
+            self.registers.SW = ord('>')
 
