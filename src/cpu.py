@@ -18,8 +18,10 @@ class CPU:
         """
         self.registers = registers
         self.memory = memory
-        # A mapping from opcode to execution method could be useful here.
-        self.opcodes = {} 
+        # Map opcodes to their handler methods.
+        self.opcodes = {
+            0x00: self._lda,
+        } 
 
     def fetch(self) -> Instruction:
         """
@@ -34,6 +36,37 @@ class CPU:
         """
         Executes a single fetch-decode-execute cycle.
         """
-        # To be implemented
-        raise NotImplementedError("CPU step() method not implemented yet.")
+        # 1. Fetch
+        instr = self.fetch()
+
+        # 2. Increment Program Counter
+        # The PC is incremented after fetching and before executing.
+        self.registers.PC += 3
+
+        # 3. Decode and Execute
+        handler = self.opcodes.get(instr.opcode)
+        if handler:
+            handler(instr)
+        else:
+            raise NotImplementedError(f"Opcode {instr.opcode:02X} is not implemented.")
+
+    # --- Instruction Handlers ---
+
+    def _get_effective_address(self, instr: Instruction) -> int:
+        """
+        Calculates the effective address for an instruction,
+        handling indexed addressing mode.
+        """
+        address = instr.address
+        if instr.x == 1:
+            address += self.registers.X
+        return address
+
+    def _lda(self, instr: Instruction):
+        """
+        Executes the LDA (Load Accumulator) instruction.
+        Opcode: 0x00
+        """
+        effective_address = self._get_effective_address(instr)
+        self.registers.A = self.memory.read_word(effective_address)
 
