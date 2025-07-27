@@ -26,8 +26,9 @@ class CPU:
         Fetches a 3-byte instruction from memory at the address
         specified by the Program Counter (PC).
         """
-        # To be implemented
-        raise NotImplementedError("CPU fetch() method not implemented yet.")
+        instruction_address = self.registers.PC
+        instruction_word = self.memory.read_word(instruction_address)
+        return Instruction(instruction_word)
 
     def step(self):
         """
