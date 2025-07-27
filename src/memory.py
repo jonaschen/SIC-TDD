@@ -67,8 +67,18 @@ class Memory:
         Raises:
             IndexError: If the address or the subsequent bytes are out of bounds.
         """
-        # To be implemented
-        raise NotImplementedError("read_word not implemented yet")
+        # A word requires 3 bytes, so the address must be valid for address, address + 1, and address + 2.
+        if not (0 <= address < self.SIZE - 2):
+            raise IndexError(f"Word read at address {address} would exceed memory bounds.")
+
+        # Read the three bytes
+        byte1 = self._memory[address]
+        byte2 = self._memory[address + 1]
+        byte3 = self._memory[address + 2]
+
+        # Combine them into a 24-bit word (big-endian)
+        word = (byte1 << 16) + (byte2 << 8) + byte3
+        return word
 
     def write_word(self, address, value):
         """
@@ -83,6 +93,19 @@ class Memory:
         Raises:
             IndexError: If the address or the subsequent bytes are out of bounds.
         """
-        # To be implemented
-        raise NotImplementedError("write_word not implemented yet")
+        # A word requires 3 bytes, so the address must be valid for address, address + 1, and address + 2.
+        if not (0 <= address < self.SIZE - 2):
+            raise IndexError(f"Word write at address {address} would exceed memory bounds.")
 
+        # Mask the value to ensure it's 24 bits. This handles Test 7.
+        value &= 0xFFFFFF
+
+        # Extract the three bytes in big-endian order
+        byte1 = (value >> 16) & 0xFF  # Most significant byte
+        byte2 = (value >> 8) & 0xFF   # Middle byte
+        byte3 = value & 0xFF          # Least significant byte
+
+        # Write the bytes to memory
+        self._memory[address] = byte1
+        self._memory[address + 1] = byte2
+        self._memory[address + 2] = byte3
