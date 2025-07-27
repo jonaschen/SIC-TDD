@@ -175,6 +175,26 @@ class TestCPU(unittest.TestCase):
         self.assertEqual(self.registers.SW, ord('>'), "SW should be '>' for A > memory.")
         self.assertEqual(self.registers.PC, start_pc + 3)
 
+    def test_step_executes_j_instruction(self):
+        """
+        Tests the J (unconditional jump) instruction.
+        Opcode for J is 0x3C.
+        """
+        # --- Setup ---
+        # Program: J 0x6050
+        start_pc = 0x6000
+        target_address = 0x6050
+
+        self.registers.PC = start_pc
+        self.memory.write_word(start_pc, 0x3C6050) # J 0x6050
+
+        # --- Execution ---
+        self.cpu.step()
+
+        # --- Verification ---
+        # The PC should be set to the target address, not start_pc + 3.
+        self.assertEqual(self.registers.PC, target_address, "PC should be updated to the jump target address.")
+
 
 if __name__ == '__main__':
     unittest.main()
