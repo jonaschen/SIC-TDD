@@ -39,3 +39,6 @@ We aim to build a faithful software simulation of the SIC architecture, later ex
 
 
 
+![alt text](image.png)
+
+![alt text](image-1.png)
