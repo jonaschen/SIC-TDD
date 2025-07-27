@@ -22,6 +22,7 @@ class CPU:
         self.opcodes = {
             0x00: self._lda,
             0x0C: self._sta,
+            0x18: self._add,
         } 
 
     def fetch(self) -> Instruction:
@@ -78,4 +79,13 @@ class CPU:
         """
         effective_address = self._get_effective_address(instr)
         self.memory.write_word(effective_address, self.registers.A)
+
+    def _add(self, instr: Instruction):
+        """
+        Executes the ADD (Add to Accumulator) instruction.
+        Opcode: 0x18
+        """
+        effective_address = self._get_effective_address(instr)
+        operand = self.memory.read_word(effective_address)
+        self.registers.A += operand
 
