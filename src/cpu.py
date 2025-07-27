@@ -25,6 +25,7 @@ class CPU:
             0x18: self._add,
             0x1C: self._sub,
             0x28: self._comp,
+            0x3C: self._j,
         } 
 
     def fetch(self) -> Instruction:
@@ -44,7 +45,8 @@ class CPU:
         instr = self.fetch()
 
         # 2. Increment Program Counter
-        # The PC is incremented after fetching and before executing.
+        # The PC is normally incremented after fetching.
+        # For jump instructions, this value will be overwritten.
         self.registers.PC += 3
 
         # 3. Decode and Execute
@@ -115,4 +117,12 @@ class CPU:
             self.registers.SW = ord('=')
         else: # self.registers.A > operand
             self.registers.SW = ord('>')
+
+    def _j(self, instr: Instruction):
+        """
+        Executes the J (Jump) instruction.
+        Opcode: 0x3C
+        """
+        effective_address = self._get_effective_address(instr)
+        self.registers.PC = effective_address
 
