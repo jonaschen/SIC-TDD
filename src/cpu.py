@@ -26,6 +26,7 @@ class CPU:
             0x1C: self._sub,
             0x28: self._comp,
             0x3C: self._j,
+            0x30: self._jeq,
         } 
 
     def fetch(self) -> Instruction:
@@ -46,7 +47,7 @@ class CPU:
 
         # 2. Increment Program Counter
         # The PC is normally incremented after fetching.
-        # For jump instructions, this value will be overwritten.
+        # For successful jump instructions, this value will be overwritten.
         self.registers.PC += 3
 
         # 3. Decode and Execute
@@ -125,4 +126,14 @@ class CPU:
         """
         effective_address = self._get_effective_address(instr)
         self.registers.PC = effective_address
+
+    def _jeq(self, instr: Instruction):
+        """
+        Executes the JEQ (Jump if Equal) instruction.
+        Opcode: 0x30
+        """
+        if self.registers.SW == ord('='):
+            effective_address = self._get_effective_address(instr)
+            self.registers.PC = effective_address
+        # If the condition is not met, the PC retains its incremented value from step().
 
