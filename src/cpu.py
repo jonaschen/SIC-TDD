@@ -21,6 +21,7 @@ class CPU:
         # Map opcodes to their handler methods.
         self.opcodes = {
             0x00: self._lda,
+            0x0C: self._sta,
         } 
 
     def fetch(self) -> Instruction:
@@ -69,4 +70,12 @@ class CPU:
         """
         effective_address = self._get_effective_address(instr)
         self.registers.A = self.memory.read_word(effective_address)
+
+    def _sta(self, instr: Instruction):
+        """
+        Executes the STA (Store Accumulator) instruction.
+        Opcode: 0x0C
+        """
+        effective_address = self._get_effective_address(instr)
+        self.memory.write_word(effective_address, self.registers.A)
 
