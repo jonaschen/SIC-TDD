@@ -121,7 +121,6 @@ class TestCPU(unittest.TestCase):
         """
         # --- Setup ---
         # Program: SUB 0x4050
-        # Opcode for SUB is 0x1C
         start_pc = 0x4000
         data_address = 0x4050
         
@@ -140,6 +139,41 @@ class TestCPU(unittest.TestCase):
         # --- Verification ---
         self.assertEqual(self.registers.A, expected_result, "Register A should hold the difference.")
         self.assertEqual(self.registers.PC, start_pc + 3, "PC should be incremented by 3.")
+
+    def test_step_executes_comp_instruction(self):
+        """
+        Tests the COMP instruction for all three conditions (<, =, >).
+        Opcode for COMP is 0x28.
+        """
+        start_pc = 0x5000
+        data_address = 0x5050
+        
+        # --- Test Case 1: A < memory ---
+        self.registers.A = 10
+        self.memory.write_word(data_address, 20)
+        self.registers.PC = start_pc
+        self.memory.write_word(start_pc, 0x285050) # COMP 0x5050
+        self.cpu.step()
+        self.assertEqual(self.registers.SW, ord('<'), "SW should be '<' for A < memory.")
+        self.assertEqual(self.registers.PC, start_pc + 3)
+
+        # --- Test Case 2: A == memory ---
+        self.registers.A = 20
+        self.memory.write_word(data_address, 20)
+        self.registers.PC = start_pc
+        self.memory.write_word(start_pc, 0x285050) # COMP 0x5050
+        self.cpu.step()
+        self.assertEqual(self.registers.SW, ord('='), "SW should be '=' for A == memory.")
+        self.assertEqual(self.registers.PC, start_pc + 3)
+
+        # --- Test Case 3: A > memory ---
+        self.registers.A = 30
+        self.memory.write_word(data_address, 20)
+        self.registers.PC = start_pc
+        self.memory.write_word(start_pc, 0x285050) # COMP 0x5050
+        self.cpu.step()
+        self.assertEqual(self.registers.SW, ord('>'), "SW should be '>' for A > memory.")
+        self.assertEqual(self.registers.PC, start_pc + 3)
 
 
 if __name__ == '__main__':
