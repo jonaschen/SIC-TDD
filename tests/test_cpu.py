@@ -195,6 +195,28 @@ class TestCPU(unittest.TestCase):
         # The PC should be set to the target address, not start_pc + 3.
         self.assertEqual(self.registers.PC, target_address, "PC should be updated to the jump target address.")
 
+    def test_step_executes_jeq_instruction(self):
+        """
+        Tests the JEQ (Jump if Equal) instruction.
+        Opcode for JEQ is 0x30.
+        """
+        start_pc = 0x7000
+        target_address = 0x7050
+        
+        # --- Test Case 1: Jump is taken (SW == '=') ---
+        self.registers.SW = ord('=')
+        self.registers.PC = start_pc
+        self.memory.write_word(start_pc, 0x307050) # JEQ 0x7050
+        self.cpu.step()
+        self.assertEqual(self.registers.PC, target_address, "JEQ should jump when SW is '='.")
+
+        # --- Test Case 2: Jump is NOT taken (SW != '=') ---
+        self.registers.SW = ord('<') # Condition is not met
+        self.registers.PC = start_pc
+        self.memory.write_word(start_pc, 0x307050) # JEQ 0x7050
+        self.cpu.step()
+        self.assertEqual(self.registers.PC, start_pc + 3, "JEQ should not jump when SW is not '='.")
+
 
 if __name__ == '__main__':
     unittest.main()
