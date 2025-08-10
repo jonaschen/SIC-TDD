@@ -15,5 +15,14 @@ class LineParser:
             A tuple containing the label, mnemonic, and operand.
             If a component is not present, it will be None.
         """
-        # To be implemented
-        raise NotImplementedError("parse() method not implemented yet.")
+        # A simple split by whitespace is sufficient for the standard format.
+        # This is robust enough to handle variable spacing between components.
+        parts = line.split()
+        
+        if len(parts) == 3:
+            return parts[0], parts[1], parts[2]
+        
+        # This is a placeholder for more complex parsing logic to come,
+        # such as handling lines without labels or operands.
+        # For now, we only handle the full line case.
+        return None, None, None
