@@ -8,8 +8,7 @@ class SymbolTable:
         """
         Initializes an empty SYMTAB.
         """
-        # To be implemented
-        pass
+        self._symbols = {}
 
     def add_symbol(self, label: str, address: int):
         """
@@ -22,7 +21,10 @@ class SymbolTable:
         Raises:
             ValueError: If the symbol already exists in the table.
         """
-        raise NotImplementedError
+        label_upper = label.upper()
+        if label_upper in self._symbols:
+            raise ValueError(f"Duplicate symbol found: {label}")
+        self._symbols[label_upper] = address
 
     def has_symbol(self, label: str) -> bool:
         """
@@ -34,7 +36,7 @@ class SymbolTable:
         Returns:
             True if the symbol exists, False otherwise.
         """
-        raise NotImplementedError
+        return label.upper() in self._symbols
 
     def get_address(self, label: str) -> int:
         """
@@ -49,4 +51,4 @@ class SymbolTable:
         Raises:
             KeyError: If the symbol does not exist.
         """
-        raise NotImplementedError
+        return self._symbols[label.upper()]
