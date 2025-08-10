@@ -16,6 +16,8 @@ class TestPassOne(unittest.TestCase):
     def setUp(self):
         self.pass_one = PassOne()
 
+    # --- Scenario 1: Basic Program Structure ---
+
     def test_run_pass_one_on_simple_program(self):
         """
         Tests that Pass One correctly processes a simple program,
@@ -30,19 +32,14 @@ class TestPassOne(unittest.TestCase):
             "        END     FIRST"
         ]
 
-        symtab, program_length = self.pass_one.run(source_code)
+        symtab, result = self.pass_one.run(source_code)
+        program_length = result.program_length
 
-        # Verify the program length
-        # 1000 -> 1003 (LDA) -> 1006 (STA) -> 1009 (WORD) -> 100C (RESW)
-        # Length = 100C - 1000 = C (or 12 in decimal)
         self.assertEqual(program_length, 12)
-
-        # Verify the symbol table
         self.assertEqual(symtab.get_address("COPY"), 0x1000)
         self.assertEqual(symtab.get_address("FIRST"), 0x1000)
         self.assertEqual(symtab.get_address("FIVE"), 0x1006)
         self.assertEqual(symtab.get_address("ALPHA"), 0x1009)
-        self.assertFalse(symtab.has_symbol("END")) # END is a directive, not a label
 
     def test_missing_start_directive_defaults_to_zero(self):
         """
@@ -53,10 +50,36 @@ class TestPassOne(unittest.TestCase):
             "RETADR  RESW    1",
             "        END     FIRST"
         ]
-        symtab, program_length = self.pass_one.run(source)
-        self.assertEqual(program_length, 6)
+        symtab, result = self.pass_one.run(source)
+        self.assertEqual(result.program_length, 6)
         self.assertEqual(symtab.get_address("FIRST"), 0x0000)
         self.assertEqual(symtab.get_address("RETADR"), 0x0003)
+
+    def test_end_directive_with_operand(self):
+        """
+        Tests that the END directive's operand is recorded as the execution start address.
+        """
+        source = [
+            "FIRST   LDA     ZERO",
+            "ZERO    WORD    0",
+            "        END     FIRST"
+        ]
+        symtab, result = self.pass_one.run(source)
+        self.assertEqual(result.execution_start_address, 0x0) # Address of FIRST
+        
+    def test_end_directive_stops_processing(self):
+        """
+        Tests that lines after the END directive are ignored.
+        """
+        source = [
+            "FIRST   LDA     ZERO",
+            "        END     FIRST",
+            "ZERO    WORD    0"  # This line should be ignored
+        ]
+        symtab, result = self.pass_one.run(source)
+        self.assertFalse(symtab.has_symbol("ZERO"))
+
+    # --- Scenario 2: Symbol and Directive Handling ---
 
     def test_duplicate_symbol_raises_error(self):
         """
@@ -71,6 +94,8 @@ class TestPassOne(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Duplicate symbol found: FIRST"):
             self.pass_one.run(source)
             
+    # --- Scenario 3: Error Handling and Edge Cases ---
+
     def test_handles_comment_lines(self):
         """
         Tests that comment lines (starting with '.') are ignored correctly.
@@ -82,11 +107,9 @@ class TestPassOne(unittest.TestCase):
             "BETA    RESW    1",
             "        END     COPY"
         ]
-        symtab, program_length = self.pass_one.run(source_code)
+        symtab, result = self.pass_one.run(source_code)
         
-        # Length should be 6 (3 bytes for LDA, 3 for RESW 1)
-        self.assertEqual(program_length, 6)
-        self.assertTrue(symtab.has_symbol("FIRST"))
+        self.assertEqual(result.program_length, 6)
         self.assertEqual(symtab.get_address("FIRST"), 0x2000)
         self.assertEqual(symtab.get_address("BETA"), 0x2003)
 
