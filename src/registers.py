@@ -2,12 +2,13 @@ class Registers:
     """
     Represents the register set for the SIC machine.
     All registers (A, X, L, PC, SW) are 24 bits wide.
+    Additional SIC/XE registers (B, S, T) are 24 bits wide, and F is 48 bits wide.
     """
     
     # Use __slots__ to prevent the creation of arbitrary attributes on the instance.
     # This ensures that only the defined SIC registers can be accessed, making
     # test_invalid_register_access pass.
-    __slots__ = ['_A', '_X', '_L', '_PC', '_SW']
+    __slots__ = ['_A', '_X', '_L', '_PC', '_SW', '_B', '_S', '_T', '_F']
 
     def __init__(self):
         """
@@ -18,6 +19,10 @@ class Registers:
         self._L = 0
         self._PC = 0
         self._SW = 0
+        self._B = 0
+        self._S = 0
+        self._T = 0
+        self._F = 0
 
     @property
     def A(self):
@@ -59,3 +64,34 @@ class Registers:
     def SW(self, value):
         self._SW = value & 0xFFFFFF
 
+    @property
+    def B(self):
+        return self._B
+
+    @B.setter
+    def B(self, value):
+        self._B = value & 0xFFFFFF
+
+    @property
+    def S(self):
+        return self._S
+
+    @S.setter
+    def S(self, value):
+        self._S = value & 0xFFFFFF
+
+    @property
+    def T(self):
+        return self._T
+
+    @T.setter
+    def T(self, value):
+        self._T = value & 0xFFFFFF
+
+    @property
+    def F(self):
+        return self._F
+
+    @F.setter
+    def F(self, value):
+        self._F = value & 0xFFFFFFFFFFFF

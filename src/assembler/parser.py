@@ -15,14 +15,34 @@ class LineParser:
             A tuple containing the label, mnemonic, and operand.
             If a component is not present, it will be None.
         """
-        # A simple split by whitespace is sufficient for the standard format.
-        # This is robust enough to handle variable spacing between components.
+        # Handle empty lines and comments (though PassOne might filter them too)
+        if not line or not line.strip() or line.strip().startswith('.'):
+            return None, None, None
+
         parts = line.split()
+        if not parts:
+            return None, None, None
+
+        label = None
+        mnemonic = None
+        operand = None
+
+        # Check if there is a label (line does not start with whitespace)
+        # Note: We use the original line string to check indentation
+        has_label = not line[0].isspace()
         
-        if len(parts) == 3:
-            return parts[0], parts[1], parts[2]
+        idx = 0
+        if has_label:
+            if idx < len(parts):
+                label = parts[idx]
+                idx += 1
         
-        # This is a placeholder for more complex parsing logic to come,
-        # such as handling lines without labels or operands.
-        # For now, we only handle the full line case.
-        return None, None, None
+        if idx < len(parts):
+            mnemonic = parts[idx]
+            idx += 1
+
+        if idx < len(parts):
+            operand = parts[idx]
+            idx += 1
+
+        return label, mnemonic, operand
