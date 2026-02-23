@@ -1,6 +1,7 @@
 from .memory import Memory
 from .registers import Registers
 from .cpu import CPU
+from .loader import Loader
 
 class SICMachine:
     """
@@ -41,6 +42,17 @@ class SICMachine:
         for word in program:
             self.memory.write_word(current_address, word)
             current_address += 3
+
+    def load_object_code(self, object_code: str, load_address: int = None):
+        """
+        Parses and loads SIC object code into memory.
+
+        Args:
+            object_code: A string containing the object code lines.
+            load_address: Optional address to load the program at.
+        """
+        loader = Loader(self)
+        loader.load(object_code, load_address)
 
     def run(self, steps: int = 100):
         """
