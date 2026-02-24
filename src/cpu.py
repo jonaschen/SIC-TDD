@@ -1,6 +1,7 @@
 from .registers import Registers
 from .memory import Memory
 from .instruction import Instruction
+from .devices import DeviceManager
 
 class CPU:
     """
@@ -8,16 +9,18 @@ class CPU:
     It orchestrates the fetch-decode-execute cycle.
     """
 
-    def __init__(self, registers: Registers, memory: Memory):
+    def __init__(self, registers: Registers, memory: Memory, device_manager: DeviceManager = None):
         """
-        Initializes the CPU with references to the registers and memory.
+        Initializes the CPU with references to the registers, memory, and device manager.
         
         Args:
             registers: The machine's register file.
             memory: The machine's main memory.
+            device_manager: The machine's IO device manager.
         """
         self.registers = registers
         self.memory = memory
+        self.device_manager = device_manager
         # Map opcodes to their handler methods.
         self.opcodes = {
             0x00: self._lda,
@@ -27,6 +30,9 @@ class CPU:
             0x28: self._comp,
             0x3C: self._j,
             0x30: self._jeq,
+            0xD8: self._rd,
+            0xDC: self._wd,
+            0xE0: self._td,
         } 
 
     def fetch(self) -> Instruction:
@@ -137,3 +143,43 @@ class CPU:
             self.registers.PC = effective_address
         # If the condition is not met, the PC retains its incremented value from step().
 
+    def _td(self, instr: Instruction):
+        """
+        Executes the TD (Test Device) instruction.
+        Opcode: 0xE0
+        Sets SW to '<' if ready, '=' if busy.
+        """
+        effective_address = self._get_effective_address(instr)
+        device_id = effective_address & 0xFF
+        device = self.device_manager.get_device(device_id) if self.device_manager else None
+
+        if device and device.test():
+            self.registers.SW = ord('<')
+        else:
+            self.registers.SW = ord('=')
+
+    def _rd(self, instr: Instruction):
+        """
+        Executes the RD (Read Device) instruction.
+        Opcode: 0xD8
+        Reads a byte into the rightmost 8 bits of A.
+        """
+        effective_address = self._get_effective_address(instr)
+        device_id = effective_address & 0xFF
+        device = self.device_manager.get_device(device_id) if self.device_manager else None
+
+        byte = device.read() if device else 0
+        self.registers.A = (self.registers.A & 0xFFFF00) | (byte & 0xFF)
+
+    def _wd(self, instr: Instruction):
+        """
+        Executes the WD (Write Device) instruction.
+        Opcode: 0xDC
+        Writes the rightmost 8 bits of A to the device.
+        """
+        effective_address = self._get_effective_address(instr)
+        device_id = effective_address & 0xFF
+        device = self.device_manager.get_device(device_id) if self.device_manager else None
+
+        if device:
+            device.write(self.registers.A & 0xFF)
