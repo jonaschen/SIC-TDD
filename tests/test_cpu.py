@@ -217,6 +217,136 @@ class TestCPU(unittest.TestCase):
         self.cpu.step()
         self.assertEqual(self.registers.PC, start_pc + 3, "JEQ should not jump when SW is not '='.")
 
+    def test_step_executes_lps_instruction(self):
+        """
+        Tests the LPS (Load Program Status) instruction.
+        Opcode: 0xD0
+        Loads SW and PC from memory.
+        """
+        start_pc = 0x7000
+        data_address = 0x7100
+        new_sw = 0x123456
+        new_pc = 0x007500
+
+        self.memory.write_word(start_pc, 0xD07100) # LPS 0x7100
+        self.memory.write_word(data_address, new_sw)
+        self.memory.write_word(data_address + 3, new_pc)
+        self.registers.PC = start_pc
+
+        self.cpu.step()
+
+        self.assertEqual(self.registers.SW, new_sw, "SW should be updated by LPS.")
+        self.assertEqual(self.registers.PC, new_pc, "PC should be updated by LPS.")
+
+    def test_privileged_instruction_violation(self):
+        """
+        Tests that executing a privileged instruction (RD) in User mode
+        triggers an interrupt (state swap).
+        """
+        # Setup vectors
+        isr_address = 0x0500
+        new_sw = 0x000000 # Supervisor mode
+        self.memory.write_word(0x06, new_sw)
+        self.memory.write_word(0x09, isr_address)
+
+        # Setup program in User mode
+        start_pc = 0x2000
+        self.registers.PC = start_pc
+        self.registers.mode = Registers.USER
+        self.memory.write_word(start_pc, 0xD81000) # RD 0x1000 (Privileged)
+
+        # Execute
+        self.cpu.step()
+
+        # Verify state swap
+        self.assertEqual(self.registers.PC, isr_address, "PC should be loaded from interrupt vector.")
+        self.assertEqual(self.registers.SW & 0x40, 0, "Should be in Supervisor mode.")
+        self.assertEqual(self.memory.read_word(0x03), start_pc + 3, "Original PC should be saved.")
+        # Interrupt code for Privileged Instruction is 1
+        saved_sw = self.memory.read_word(0x00)
+        self.assertEqual((saved_sw >> 16) & 0xFF, 1, "Interrupt code 1 should be set in saved SW.")
+
+    def test_memory_protection_violation_read(self):
+        """
+        Tests that reading from protected memory (< 0x1000) in User mode
+        triggers an interrupt (state swap).
+        """
+        # Setup vectors
+        isr_address = 0x0600
+        self.memory.write_word(0x09, isr_address)
+
+        # Setup program in User mode
+        start_pc = 0x2000
+        self.registers.PC = start_pc
+        self.registers.mode = Registers.USER
+        self.memory.write_word(start_pc, 0x000500) # LDA 0x0500 (Protected)
+
+        # Execute
+        self.cpu.step()
+
+        # Verify state swap
+        self.assertEqual(self.registers.PC, isr_address, "PC should be loaded from interrupt vector.")
+        # Interrupt code for Memory Protection Violation is 2
+        saved_sw = self.memory.read_word(0x00)
+        self.assertEqual((saved_sw >> 16) & 0xFF, 2, "Interrupt code 2 should be set in saved SW.")
+
+    def test_step_executes_svc_instruction(self):
+        """
+        Tests the SVC (Supervisor Call) instruction.
+        Opcode: 0xB0 (Format 2)
+        SVC n should trigger an interrupt with code n.
+        """
+        start_pc = 0x7800
+        # SVC 5 -> 0xB050 (r1=5, r2=0)
+        self.memory.write_byte(start_pc, 0xB0)
+        self.memory.write_byte(start_pc + 1, 0x50)
+        self.registers.PC = start_pc
+
+        # Setup vector
+        isr_address = 0x0700
+        self.memory.write_word(0x09, isr_address)
+
+        self.cpu.step()
+
+        self.assertEqual(self.registers.PC, isr_address, "PC should jump to ISR.")
+        saved_sw = self.memory.read_word(0x00)
+        self.assertEqual((saved_sw >> 16) & 0xFF, 5, "Interrupt code should be 5.")
+
+    def test_interrupt_return_via_lps(self):
+        """
+        Tests the full cycle: Interrupt -> ISR -> LPS (Return).
+        """
+        # 1. Setup original state (User mode)
+        original_pc = 0x3000
+        original_sw = 0x000040 | ord('=') # User mode, CC='='
+        self.registers.PC = original_pc
+        self.registers.SW = original_sw
+
+        # 2. Setup Interrupt Vector
+        isr_address = 0x1000
+        self.memory.write_word(0x09, isr_address)
+        self.memory.write_word(0x06, 0x000000) # Supervisor mode for ISR
+
+        # 3. Trigger Interrupt (via SVC 3)
+        self.memory.write_byte(original_pc, 0xB0)
+        self.memory.write_byte(original_pc + 1, 0x30)
+        self.cpu.step()
+
+        # Verify we are in ISR
+        self.assertEqual(self.registers.PC, isr_address)
+        self.assertEqual(self.registers.mode, Registers.SUPERVISOR)
+
+        # 4. ISR executes some instruction, then LPS to return
+        # LPS 0x00 (points to saved state at 0x00 and 0x03)
+        self.memory.write_word(isr_address, 0xD00000)
+        self.cpu.step()
+
+        # Verify we are back in original state (but PC advanced by 2 for SVC)
+        self.assertEqual(self.registers.PC, original_pc + 2)
+        self.assertEqual(self.registers.SW & 0x40, 0x40, "Should be back in User mode.")
+        # CC should be restored (ignoring the mode bit)
+        self.assertEqual(self.registers.SW & 0x3F, ord('=') & 0x3F, "CC should be restored.")
+
 
 if __name__ == '__main__':
     unittest.main()
