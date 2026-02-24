@@ -2,6 +2,7 @@ from .memory import Memory
 from .registers import Registers
 from .cpu import CPU
 from .loader import Loader
+from .devices import DeviceManager
 
 class SICMachine:
     """
@@ -12,11 +13,12 @@ class SICMachine:
     def __init__(self):
         """
         Initializes the entire SIC machine, creating instances of
-        Memory, Registers, and CPU.
+        Memory, Registers, CPU, and DeviceManager.
         """
         self.memory = Memory()
         self.registers = Registers()
-        self.cpu = CPU(self.registers, self.memory)
+        self.device_manager = DeviceManager()
+        self.cpu = CPU(self.registers, self.memory, self.device_manager)
 
     def reset(self):
         """
