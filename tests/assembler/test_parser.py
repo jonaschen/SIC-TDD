@@ -27,5 +27,61 @@ class TestLineParser(unittest.TestCase):
         self.assertEqual(mnemonic, "STA")
         self.assertEqual(operand, "BUFFER,X")
 
+    def test_parse_empty_line(self):
+        """Tests parsing an empty string."""
+        label, mnemonic, operand = self.parser.parse("")
+        self.assertIsNone(label)
+        self.assertIsNone(mnemonic)
+        self.assertIsNone(operand)
+
+    def test_parse_whitespace_only(self):
+        """Tests parsing a line containing only whitespace."""
+        label, mnemonic, operand = self.parser.parse("   \t  ")
+        self.assertIsNone(label)
+        self.assertIsNone(mnemonic)
+        self.assertIsNone(operand)
+
+    def test_parse_comment(self):
+        """Tests parsing a comment line starting with '.'"""
+        label, mnemonic, operand = self.parser.parse(". This is a comment")
+        self.assertIsNone(label)
+        self.assertIsNone(mnemonic)
+        self.assertIsNone(operand)
+
+    def test_parse_comment_with_leading_whitespace(self):
+        """Tests parsing a comment line with leading spaces."""
+        label, mnemonic, operand = self.parser.parse("  . Comment")
+        self.assertIsNone(label)
+        self.assertIsNone(mnemonic)
+        self.assertIsNone(operand)
+
+    def test_parse_no_label(self):
+        """Tests parsing a line with mnemonic and operand but no label."""
+        label, mnemonic, operand = self.parser.parse("  STA BUFFER,X")
+        self.assertIsNone(label)
+        self.assertEqual(mnemonic, "STA")
+        self.assertEqual(operand, "BUFFER,X")
+
+    def test_parse_no_operand(self):
+        """Tests parsing a line with label and mnemonic but no operand."""
+        label, mnemonic, operand = self.parser.parse("LOOP RSUB")
+        self.assertEqual(label, "LOOP")
+        self.assertEqual(mnemonic, "RSUB")
+        self.assertIsNone(operand)
+
+    def test_parse_mnemonic_only(self):
+        """Tests parsing a line with only a mnemonic."""
+        label, mnemonic, operand = self.parser.parse("  RSUB")
+        self.assertIsNone(label)
+        self.assertEqual(mnemonic, "RSUB")
+        self.assertIsNone(operand)
+
+    def test_parse_label_only(self):
+        """Tests parsing a line with only a label."""
+        label, mnemonic, operand = self.parser.parse("LOOP")
+        self.assertEqual(label, "LOOP")
+        self.assertIsNone(mnemonic)
+        self.assertIsNone(operand)
+
 if __name__ == '__main__':
     unittest.main()
