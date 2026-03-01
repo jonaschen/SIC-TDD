@@ -217,6 +217,22 @@ class TestCPU(unittest.TestCase):
         self.cpu.step()
         self.assertEqual(self.registers.PC, start_pc + 3, "JEQ should not jump when SW is not '='.")
 
+    def test_step_raises_not_implemented_error_for_unknown_opcode(self):
+        """
+        Tests that the CPU raises a NotImplementedError when it encounters an unknown opcode.
+        """
+        # --- Setup ---
+        # Program: invalid opcode 0xFF
+        start_pc = 0x1000
+        invalid_instruction_word = 0xFF0000
+
+        self.registers.PC = start_pc
+        self.memory.write_word(start_pc, invalid_instruction_word)
+
+        # --- Execution & Verification ---
+        with self.assertRaisesRegex(NotImplementedError, "Opcode FF is not implemented."):
+            self.cpu.step()
+
 
 if __name__ == '__main__':
     unittest.main()
