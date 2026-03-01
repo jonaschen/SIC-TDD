@@ -54,6 +54,18 @@ class TestInstruction(unittest.TestCase):
         self.assertEqual(instr.x, 0, "Indexing bit (X) should be 0.")
         self.assertEqual(instr.address, 0x1000, "Address should be decoded correctly.")
 
+    def test_instruction_word_out_of_bounds(self):
+        """
+        Tests that an exception is raised when the instruction word is out of bounds.
+        """
+        # Test negative value
+        with self.assertRaises(ValueError, msg="Instruction word must be a 24-bit value."):
+            Instruction(-1)
+
+        # Test value exceeding 24 bits
+        with self.assertRaises(ValueError, msg="Instruction word must be a 24-bit value."):
+            Instruction(0xFFFFFF + 1)
+
 
 if __name__ == '__main__':
     unittest.main()
