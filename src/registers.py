@@ -5,6 +5,10 @@ class Registers:
     Additional SIC/XE registers (B, S, T) are 24 bits wide, and F is 48 bits wide.
     """
     
+    # Mode constants
+    SUPERVISOR = 0
+    USER = 1
+
     # Use __slots__ to prevent the creation of arbitrary attributes on the instance.
     # This ensures that only the defined SIC registers can be accessed, making
     # test_invalid_register_access pass.
@@ -63,6 +67,24 @@ class Registers:
     @SW.setter
     def SW(self, value):
         self._SW = value & 0xFFFFFF
+
+    @property
+    def mode(self):
+        """
+        Returns the current mode of the machine based on SW bit 6.
+        0 = Supervisor, 1 = User.
+        """
+        return (self._SW >> 6) & 1
+
+    @mode.setter
+    def mode(self, value):
+        """
+        Sets the mode of the machine by updating SW bit 6.
+        """
+        if value == self.USER:
+            self._SW |= 0x40
+        else:
+            self._SW &= 0xFFFFBF
 
     @property
     def B(self):

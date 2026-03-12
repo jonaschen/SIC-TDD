@@ -3,6 +3,11 @@ from .memory import Memory
 from .instruction import Instruction
 from .devices import DeviceManager
 
+class ProtectionError(Exception):
+    """Exception raised for memory protection or privileged instruction violations."""
+    def __init__(self, interrupt_code):
+        self.interrupt_code = interrupt_code
+
 class CPU:
     """
     Represents the Central Processing Unit of the SIC machine.
@@ -33,35 +38,74 @@ class CPU:
             0xD8: self._rd,
             0xDC: self._wd,
             0xE0: self._td,
+            0xB0: self._svc,
+            0xD0: self._lps,
         } 
+
+    # Mapping of opcodes to their instruction formats (length in bytes)
+    FORMAT_MAP = {
+        0xB0: 2,  # SVC
+    }
+
+    # Privileged opcodes
+    PRIVILEGED_OPCODES = {0xD8, 0xDC, 0xE0, 0xD0} # RD, WD, TD, LPS
+
+    def _check_memory_protection(self, address: int):
+        """
+        Checks if the address is protected and if the current mode allows access.
+        Raises an interrupt if protection is violated.
+        """
+        if self.registers.mode == Registers.USER and address < 0x1000:
+            raise ProtectionError(2) # Code 2: Memory Protection Violation
 
     def fetch(self) -> Instruction:
         """
-        Fetches a 3-byte instruction from memory at the address
+        Fetches an instruction from memory at the address
         specified by the Program Counter (PC).
         """
         instruction_address = self.registers.PC
-        instruction_word = self.memory.read_word(instruction_address)
-        return Instruction(instruction_word)
+        # Read the first byte to determine the opcode and format
+        first_byte = self.memory.read_byte(instruction_address)
+
+        format = self.FORMAT_MAP.get(first_byte, 3)
+
+        if format == 2:
+            second_byte = self.memory.read_byte(instruction_address + 1)
+            word = (first_byte << 8) | second_byte
+            return Instruction(word, format=2)
+        else:
+            # Assume Format 3 for everything else (standard SIC)
+            word = self.memory.read_word(instruction_address)
+            return Instruction(word, format=3)
 
     def step(self):
         """
         Executes a single fetch-decode-execute cycle.
         """
-        # 1. Fetch
-        instr = self.fetch()
+        try:
+            # 1. Memory Protection Check for PC
+            self._check_memory_protection(self.registers.PC)
 
-        # 2. Increment Program Counter
-        # The PC is normally incremented after fetching.
-        # For successful jump instructions, this value will be overwritten.
-        self.registers.PC += 3
+            # 2. Fetch
+            instr = self.fetch()
 
-        # 3. Decode and Execute
-        handler = self.opcodes.get(instr.opcode)
-        if handler:
-            handler(instr)
-        else:
-            raise NotImplementedError(f"Opcode {instr.opcode:02X} is not implemented.")
+            # 3. Increment Program Counter
+            # The PC is normally incremented by the instruction length.
+            # For successful jump instructions, this value will be overwritten.
+            self.registers.PC += instr.format
+
+            # 4. Privileged Instruction Check
+            if self.registers.mode == Registers.USER and instr.opcode in self.PRIVILEGED_OPCODES:
+                raise ProtectionError(1) # Code 1: Privileged Instruction Exception
+
+            # 5. Decode and Execute
+            handler = self.opcodes.get(instr.opcode)
+            if handler:
+                handler(instr)
+            else:
+                raise NotImplementedError(f"Opcode {instr.opcode:02X} is not implemented.")
+        except ProtectionError as e:
+            self._handle_interrupt(e.interrupt_code)
 
     # --- Instruction Handlers ---
 
@@ -73,6 +117,8 @@ class CPU:
         address = instr.address
         if instr.x == 1:
             address += self.registers.X
+
+        self._check_memory_protection(address)
         return address
 
     def _lda(self, instr: Instruction):
@@ -183,3 +229,45 @@ class CPU:
 
         if device:
             device.write(self.registers.A & 0xFF)
+
+    def _svc(self, instr: Instruction):
+        """
+        Executes the SVC (Supervisor Call) instruction.
+        Opcode: 0xB0 (Format 2)
+        Triggers a software interrupt with the code given by r1.
+        """
+        interrupt_code = instr.r1
+        self._handle_interrupt(interrupt_code)
+
+    def _lps(self, instr: Instruction):
+        """
+        Executes the LPS (Load Program Status) instruction.
+        Opcode: 0xD0
+        Loads SW and PC from memory.
+        """
+        effective_address = self._get_effective_address(instr)
+        self.registers.SW = self.memory.read_word(effective_address)
+        self.registers.PC = self.memory.read_word(effective_address + 3)
+
+    def _handle_interrupt(self, interrupt_code: int):
+        """
+        Handles an interrupt or exception.
+        Saves current SW and PC to memory (0x00 and 0x03).
+        Loads new SW and PC from memory (0x06 and 0x09).
+        The interrupt code is stored in the saved SW (bits 16-23).
+        """
+        # 1. Prepare saved SW with interrupt code
+        saved_sw = self.registers.SW
+        # Mask out any old interrupt code and set the new one
+        saved_sw = (saved_sw & 0x00FFFF) | ((interrupt_code & 0xFF) << 16)
+
+        # 2. Save current state
+        self.memory.write_word(0x000000, saved_sw)
+        self.memory.write_word(0x000003, self.registers.PC)
+
+        # 3. Load new state from vectors
+        self.registers.SW = self.memory.read_word(0x000006)
+        self.registers.PC = self.memory.read_word(0x000009)
+
+        # 4. Ensure we are in Supervisor mode (bit 6 of SW = 0)
+        self.registers.mode = Registers.SUPERVISOR
