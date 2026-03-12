@@ -26,6 +26,10 @@ class MockDevice:
     def write(self, value: int):
         self.written_data.append(value)
 
+    def reset(self):
+        self.read_data = []
+        self.written_data = []
+
 class TestIO(unittest.TestCase):
     def setUp(self):
         self.machine = SICMachine()
@@ -120,6 +124,55 @@ class TestIO(unittest.TestCase):
         dev.rewind()
         self.assertEqual(dev.read(), 0xBE)
         self.assertEqual(dev.read(), 0xEF)
+
+    def test_console_input_device_reset(self):
+        from src.devices import ConsoleInputDevice
+        dev = ConsoleInputDevice()
+        dev.set_input("TEST")
+        self.assertTrue(dev.test())
+        self.assertEqual(dev.read(), ord('T'))
+
+        dev.reset()
+        self.assertFalse(dev.test())
+        self.assertEqual(dev.read(), 0)
+
+    def test_console_output_device_reset(self):
+        from src.devices import ConsoleOutputDevice
+        dev = ConsoleOutputDevice()
+        dev.write(ord('A'))
+        self.assertEqual(dev.get_output(), "A")
+
+        dev.reset()
+        self.assertEqual(dev.get_output(), "")
+
+    def test_file_backed_device_reset(self):
+        from src.devices import FileBackedDevice
+        dev = FileBackedDevice()
+        dev.write(0xFF)
+        dev.seek(0)
+        self.assertEqual(dev.read(), 0xFF)
+
+        dev.reset()
+        dev.seek(0)
+        self.assertEqual(dev.read(), 0)
+
+    def test_device_manager_reset(self):
+        device1 = MockDevice()
+        device1.write(0x12)
+
+        device2 = MockDevice()
+        device2.write(0x34)
+
+        self.machine.device_manager.add_device(0x10, device1)
+        self.machine.device_manager.add_device(0x20, device2)
+
+        self.assertEqual(device1.written_data, [0x12])
+        self.assertEqual(device2.written_data, [0x34])
+
+        self.machine.device_manager.reset()
+
+        self.assertEqual(device1.written_data, [])
+        self.assertEqual(device2.written_data, [])
 
 if __name__ == '__main__':
     unittest.main()
