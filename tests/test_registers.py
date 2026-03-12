@@ -62,6 +62,24 @@ class TestRegisters(unittest.TestCase):
         with self.assertRaises(AttributeError, msg="Setting a non-existent register should raise an AttributeError."):
             self.registers.Z = 0
 
+    def test_mode_property(self):
+        """
+        Test 5: Verifies the mode property (Supervisor/User) and its mapping to SW bit 6.
+        """
+        # Initially should be Supervisor mode (bit 6 = 0)
+        self.assertEqual(self.registers.mode, Registers.SUPERVISOR)
+        self.assertEqual(self.registers.SW & 0x40, 0)
+
+        # Switch to User mode
+        self.registers.mode = Registers.USER
+        self.assertEqual(self.registers.mode, Registers.USER)
+        self.assertEqual(self.registers.SW & 0x40, 0x40)
+
+        # Switch back to Supervisor mode
+        self.registers.mode = Registers.SUPERVISOR
+        self.assertEqual(self.registers.mode, Registers.SUPERVISOR)
+        self.assertEqual(self.registers.SW & 0x40, 0)
+
 
 if __name__ == '__main__':
     unittest.main()

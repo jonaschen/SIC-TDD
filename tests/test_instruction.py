@@ -54,6 +54,26 @@ class TestInstruction(unittest.TestCase):
         self.assertEqual(instr.x, 0, "Indexing bit (X) should be 0.")
         self.assertEqual(instr.address, 0x1000, "Address should be decoded correctly.")
 
+    def test_decode_format2_instruction(self):
+        """
+        Tests the decoding of a SIC/XE Format 2 instruction.
+        The instruction word represents 'SVC 1'
+        Opcode for SVC is 0xB0.
+        r1 is 1.
+        r2 is 0.
+
+        The resulting 16-bit word is 0xB010.
+        """
+        instruction_word = 0xB010
+
+        instr = Instruction(instruction_word, format=2)
+
+        # Verify the decoded components
+        self.assertEqual(instr.opcode, 0xB0, "Opcode should be decoded correctly.")
+        self.assertEqual(instr.r1, 1, "r1 should be decoded correctly.")
+        self.assertEqual(instr.r2, 0, "r2 should be decoded correctly.")
+        self.assertEqual(instr.format, 2, "Format should be 2.")
+
 
 if __name__ == '__main__':
     unittest.main()
